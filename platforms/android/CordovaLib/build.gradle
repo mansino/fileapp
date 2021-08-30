@@ -55,7 +55,7 @@ version = '9.1.0'
 
 android {
     compileSdkVersion cdvCompileSdkVersion
-    buildToolsVersion cdvBuildToolsVersion
+//    buildToolsVersion cdvBuildToolsVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
