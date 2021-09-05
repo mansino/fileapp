@@ -55,7 +55,7 @@ version = '9.1.0'
 
 android {
     compileSdkVersion cdvCompileSdkVersion
-    buildToolsVersion cdvBuildToolsVersion
+//    buildToolsVersion cdvBuildToolsVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -115,6 +115,10 @@ install {
             }
         }
     }
+}
+
+dependencies {
+    implementation 'com.android.support:support-v4:28.0.0'
 }
 
 task sourcesJar(type: Jar) {

@@ -18,18 +18,25 @@
 */
 package org.apache.cordova.engine;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import android.annotation.TargetApi;
+import java.util.Date;
+import java.util.Locale;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.support.v4.content.FileProvider;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
-import android.webkit.ConsoleMessage;
 import android.webkit.GeolocationPermissions.Callback;
 import android.webkit.JsPromptResult;
 import android.webkit.JsResult;
@@ -220,13 +227,23 @@ public class SystemWebChromeClient extends WebChromeClient {
             selectMultiple = true;
         }
 
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(new Date());
         final String imageFileName = "IMG_" + timeStamp + ".jpg";
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), imageFileName);
 
-        final String path = file.getAbsolutePath();
+        File file;
+        try {
+            file= File.createTempFile(
+                    timeStamp,
+                    ".jpg",
+                    appContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            );
+        } catch (IOException e) {
+            file = new File(appContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES), imageFileName);
+        }
 
-        outputFileUri = Uri.fromFile(file);
+        outputFileUri = FileProvider.getUriForFile(appContext,
+                "org.apache.cordova.fileprovider",
+                file);
 
         Intent intent = fileChooserParams.createIntent();
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -249,6 +266,7 @@ public class SystemWebChromeClient extends WebChromeClient {
             chooserIntent = Intent.createChooser(intent, "Vyberte zdroj");
             chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{GalleryIntent,cameraIntent, intent});
 
+            File camFile = file;
             parentEngine.cordova.startActivityForResult(new CordovaPlugin() {
                 @Override
                 public void onActivityResult(int requestCode, int resultCode, Intent intent) {
@@ -256,7 +274,7 @@ public class SystemWebChromeClient extends WebChromeClient {
                     if (resultCode ==  Activity.RESULT_OK && intent != null) {
 
                         final boolean isCamera;
-                        if (intent == null) {
+                        if (camFile.exists() && camFile.length()>100) {
                             isCamera = true;
                         } else {
                             final String action = intent.getAction();
@@ -271,13 +289,6 @@ public class SystemWebChromeClient extends WebChromeClient {
 
                         Uri selectedImageUri;
                         if (isCamera) {
-                            Bundle bundle = intent.getExtras();
-                            Bitmap bmp = (Bitmap) bundle.get("data");
-                            try (FileOutputStream out = new FileOutputStream(path)) {
-                                bmp.compress(Bitmap.CompressFormat.JPEG, 80, out); // bmp is your Bitmap instance
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
                             selectedImageUri = outputFileUri;
                             result[0] = selectedImageUri;
                         } else {
